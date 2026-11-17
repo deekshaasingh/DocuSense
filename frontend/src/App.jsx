@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 
-const API = "/api";
+const API = (
+  import.meta.env.VITE_API_BASE_URL || "/api"
+).replace(/\/$/, "");
 
 function confidenceColor(score) {
   if (score >= 0.9) return "bg-emerald-100 text-emerald-800 border-emerald-300";
