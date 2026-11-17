@@ -1,0 +1,43 @@
+{
+  "fitted_at": "2026-11-17T11:49:59.060494+00:00",
+  "fitted_on": "tune split",
+  "n_tune_documents": 124,
+  "aggregation": "mean",
+  "target_precision": 0.9,
+  "selection_rule": "highest holdout field automation with precision of auto-accepted fields >= 0.95",
+  "holdout": {
+    "straight_through": 0.0,
+    "field_automation": 0.8491,
+    "auto_field_precision": 0.9742
+  },
+  "fields": {
+    "invoice_number": {
+      "auto": 0.4,
+      "flag": 0.2
+    },
+    "invoice_date": {
+      "auto": 0.4,
+      "flag": 0.2
+    },
+    "vendor_name": {
+      "auto": 0.4,
+      "flag": 0.2
+    },
+    "vendor_gstin": {
+      "auto": 1.01,
+      "flag": 0.81
+    },
+    "subtotal": {
+      "auto": 0.4,
+      "flag": 0.2
+    },
+    "tax_amount": {
+      "auto": 0.4,
+      "flag": 0.2
+    },
+    "total_amount": {
+      "auto": 0.4,
+      "flag": 0.2
+    }
+  }
+}

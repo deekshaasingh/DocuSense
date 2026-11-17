@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: docusense
+      POSTGRES_PASSWORD: docusense
+      POSTGRES_DB: docusense
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docusense"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://docusense:docusense@postgres:5432/docusense
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_DIR: /data/storage
+      EXTRACTOR_MODE: ${EXTRACTOR_MODE:-mock}
+      OLLAMA_URL: http://ollama:11434/api/chat
+      CONFIDENCE_AGGREGATION: ${CONFIDENCE_AGGREGATION:-mean}
+      # Guardrails (docs/guardrails.md). This single-user local/demo compose
+      # ships auth OFF so `docker compose up` works with zero setup; set
+      # AUTH_ENABLED=true and API_KEYS before exposing it beyond your machine.
+      AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      API_KEYS: ${API_KEYS:-}
+      MAINTENANCE_MODE: ${MAINTENANCE_MODE:-false}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-15}
+      UPLOAD_RATE_LIMIT: ${UPLOAD_RATE_LIMIT:-20/minute}
+      COST_PER_1K_TOKENS_USD: ${COST_PER_1K_TOKENS_USD:-0.01}
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgresql+psycopg2://docusense:docusense@postgres:5432/docusense
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_DIR: /data/storage
+      EXTRACTOR_MODE: ${EXTRACTOR_MODE:-mock}
+      OLLAMA_URL: http://ollama:11434/api/chat
+      CONFIDENCE_AGGREGATION: ${CONFIDENCE_AGGREGATION:-mean}
+      COST_PER_1K_TOKENS_USD: ${COST_PER_1K_TOKENS_USD:-0.01}
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+  # Real VLM server. Not started by default (profile "real") -- see
+  # docs/deployment.md for switching EXTRACTOR_MODE=ollama and pulling a
+  # model into this service once you have the RAM/GPU to spare.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["real"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+volumes:
+  pgdata:
+  storage:
+  ollama_models:

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+.eval_cache.pkl
+*.db
+.pytest_cache/
+storage/
+
+eval/dataset/*.png
+eval/dataset/*.json
+!eval/dataset/_manifest.json
