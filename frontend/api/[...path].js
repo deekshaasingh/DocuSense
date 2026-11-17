@@ -1,22 +1,27 @@
-const https = require("https");
 
-module.exports = (req, res) => {
+import https from "node:https";
+
+export default function handler(req, res) {
   const backend = process.env.BACKEND_URL;
   const apiKey = process.env.DOCUSENSE_API_KEY;
 
   if (!backend || !apiKey) {
     return res.status(500).json({
-      detail: "Proxy environment variables are missing"
+      detail: "Missing proxy environment variables"
     });
   }
 
   const incoming = new URL(req.url, "https://vercel.local");
   const base = new URL(backend);
 
-  const apiPath = incoming.pathname.replace(/^\/api/, "") || "/";
-  const upstreamPath = `${base.pathname.replace(/\/$/, "")}${apiPath}${incoming.search}`;
+  const apiPath =
+    incoming.pathname.replace(/^\/api/, "") || "/";
+
+  const upstreamPath =
+    `${base.pathname.replace(/\/$/, "")}${apiPath}${incoming.search}`;
 
   const headers = { ...req.headers };
+
   delete headers.host;
   delete headers.connection;
   delete headers["transfer-encoding"];
@@ -35,7 +40,7 @@ module.exports = (req, res) => {
       res.statusCode = response.statusCode;
 
       Object.entries(response.headers).forEach(([key, value]) => {
-        if (!["connection", "transfer-encoding"].includes(key.toLowerCase()) && value !== undefined) {
+        if (value !== undefined) {
           res.setHeader(key, value);
         }
       });
@@ -45,7 +50,8 @@ module.exports = (req, res) => {
   );
 
   proxy.on("error", (error) => {
-    console.error("Backend proxy error:", error.message);
+    console.error("Proxy error:", error);
+
     if (!res.headersSent) {
       res.statusCode = 502;
       res.end("Backend connection failed");
@@ -53,4 +59,4 @@ module.exports = (req, res) => {
   });
 
   req.pipe(proxy);
-};
+}
